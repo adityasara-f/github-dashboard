@@ -1,4 +1,5 @@
 import React from 'react';
+import { RepoListPanel, SearchPanel } from '../components';
 
 export const AppLayout: React.FC = () => {
   return (
@@ -17,19 +18,8 @@ export const AppLayout: React.FC = () => {
       <main className="container py-6">
         <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
           <div className="space-y-4">
-            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
-              <h2 className="text-sm font-medium text-slate-300">Search</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Organization search and repository list will appear here in later phases.
-              </p>
-            </div>
-
-            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
-              <h2 className="text-sm font-medium text-slate-300">Repositories</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Repository results, sorting, and infinite scrolling will be implemented in upcoming phases.
-              </p>
-            </div>
+            <SearchPanel />
+            <RepoListPanel />
           </div>
 
           <aside className="space-y-4">
