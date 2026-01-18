@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { useOrgReposQuery } from '../../hooks';
+import { useIntersectionObserver, useOrgReposQuery } from '../../hooks';
 import { useOrgStore } from '../../store/orgStore';
 
 const SKELETON_ITEMS = 5;
 
 export const RepoListPanel: React.FC = () => {
-  const { org, data, isLoading, isError, error, isFetching } = useOrgReposQuery();
+  const { org, repos, isLoading, isError, error, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useOrgReposQuery();
   const { sortBy, setSortBy } = useOrgStore((state) => ({
     sortBy: state.sortBy,
     setSortBy: state.setSortBy,
@@ -14,11 +15,11 @@ export const RepoListPanel: React.FC = () => {
   const hasOrg = Boolean(org);
 
   const sortedRepos = useMemo(() => {
-    if (!data) {
+    if (!repos.length) {
       return [];
     }
 
-    const cloned = [...data];
+    const cloned = [...repos];
 
     switch (sortBy) {
       case 'forks':
@@ -34,7 +35,7 @@ export const RepoListPanel: React.FC = () => {
     }
 
     return cloned;
-  }, [data, sortBy]);
+  }, [repos, sortBy]);
 
   const renderSkeletonList = () => (
     <ul className="divide-y divide-slate-800">
@@ -56,6 +57,13 @@ export const RepoListPanel: React.FC = () => {
     </ul>
   );
 
+  const sentinelRef = useIntersectionObserver<HTMLDivElement>(() => {
+    if (!hasNextPage || isFetchingNextPage) {
+      return;
+    }
+    fetchNextPage();
+  });
+
   let body: React.ReactNode = null;
 
   if (!hasOrg) {
@@ -64,7 +72,7 @@ export const RepoListPanel: React.FC = () => {
         Enter a GitHub organization handle above to see its public repositories.
       </p>
     );
-  } else if (isLoading && !data) {
+  } else if (isLoading && sortedRepos.length === 0) {
     body = renderSkeletonList();
   } else if (isError) {
     if (error?.status === 404) {
@@ -168,7 +176,15 @@ export const RepoListPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-3 min-h-[3rem] text-sm">{isFetching && sortedRepos.length > 0 ? renderSkeletonList() : body}</div>
+      <div className="mt-3 min-h-[3rem] text-sm">
+        {body}
+        {hasNextPage && sortedRepos.length > 0 && (
+          <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
+        )}
+        {isFetchingNextPage && sortedRepos.length > 0 && (
+          <div className="mt-2">{renderSkeletonList()}</div>
+        )}
+      </div>
     </div>
   );
 };

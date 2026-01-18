@@ -1,5 +1,5 @@
 import React from 'react';
-import { OrgOverviewPanel, RepoListPanel, SearchPanel } from '../components';
+import { LanguageDistributionChart, OrgOverviewPanel, RepoListPanel, SearchPanel } from '../components';
 
 export const AppLayout: React.FC = () => {
   return (
@@ -24,6 +24,7 @@ export const AppLayout: React.FC = () => {
 
           <aside className="space-y-4">
             <OrgOverviewPanel />
+            <LanguageDistributionChart />
           </aside>
         </section>
       </main>

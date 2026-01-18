@@ -3,6 +3,26 @@ import { GithubApiError } from '../types';
 
 const GITHUB_API_BASE_URL = 'https://api.github.com';
 
+let githubToken: string | null = null;
+
+export function setGithubToken(token: string | null): void {
+  githubToken = token;
+}
+
+export function getGithubToken(): string | null {
+  return githubToken;
+}
+
+function getAuthHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    Accept: 'application/vnd.github+json',
+  };
+  if (githubToken) {
+    headers.Authorization = `Bearer ${githubToken}`;
+  }
+  return headers;
+}
+
 interface FetchOrgReposParams {
   org: string;
   page: number;
@@ -21,9 +41,7 @@ export async function fetchOrgRepos({ org, page, perPage = 10 }: FetchOrgReposPa
   url.searchParams.set('page', String(page));
 
   const response = await fetch(url.toString(), {
-    headers: {
-      Accept: 'application/vnd.github+json',
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -61,9 +79,7 @@ export async function fetchOrgDetails(org: string): Promise<GithubOrg> {
   const url = `${GITHUB_API_BASE_URL}/orgs/${encodeURIComponent(trimmedOrg)}`;
 
   const response = await fetch(url, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -92,5 +108,41 @@ export async function fetchOrgDetails(org: string): Promise<GithubOrg> {
   }
 
   const data = (await response.json()) as GithubOrg;
+  return data;
+}
+
+export async function fetchRepoLanguages(owner: string, repo: string): Promise<Record<string, number>> {
+  const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/languages`;
+
+  const response = await fetch(url, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const isJson = response.headers.get('content-type')?.includes('application/json');
+    const body = isJson ? await response.json() : null;
+
+    const messageFromBody: string | undefined = body?.message;
+
+    if (response.status === 404) {
+      throw new GithubApiError(messageFromBody ?? 'Repository not found', 404, body?.documentation_url);
+    }
+
+    if (response.status === 403) {
+      throw new GithubApiError(
+        messageFromBody ?? 'Rate limit exceeded or access forbidden by GitHub API',
+        403,
+        body?.documentation_url,
+      );
+    }
+
+    throw new GithubApiError(
+      messageFromBody ?? 'Failed to fetch repository languages',
+      response.status,
+      body?.documentation_url,
+    );
+  }
+
+  const data = (await response.json()) as Record<string, number>;
   return data;
 }
