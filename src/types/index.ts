@@ -16,6 +16,17 @@ export interface GithubRepo {
   owner: GithubOwner;
 }
 
+export interface GithubOrg {
+  login: string;
+  avatar_url: string;
+  name: string | null;
+  description: string | null;
+  html_url: string;
+  public_repos: number;
+  followers: number;
+  following: number;
+}
+
 export class GithubApiError extends Error {
   public readonly status: number;
   public readonly documentation_url?: string;

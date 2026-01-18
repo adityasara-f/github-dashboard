@@ -1,5 +1,5 @@
 import React from 'react';
-import { RepoListPanel, SearchPanel } from '../components';
+import { OrgOverviewPanel, RepoListPanel, SearchPanel } from '../components';
 
 export const AppLayout: React.FC = () => {
   return (
@@ -23,12 +23,7 @@ export const AppLayout: React.FC = () => {
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
-              <h2 className="text-sm font-medium text-slate-300">Organization Overview</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Avatar, summary metrics, and language distribution chart will be added here.
-              </p>
-            </div>
+            <OrgOverviewPanel />
           </aside>
         </section>
       </main>

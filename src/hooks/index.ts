@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchOrgRepos } from '../api';
+import { fetchOrgDetails, fetchOrgRepos } from '../api';
 import { useOrgStore } from '../store/orgStore';
-import { GithubApiError, GithubRepo } from '../types';
+import { GithubApiError, GithubOrg, GithubRepo } from '../types';
 
 export function useDebouncedValue<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState<T>(value);
@@ -69,5 +69,40 @@ export function useOrgReposQuery(): UseOrgReposResult {
       // will not refetch automatically within that TTL.
       void query.refetch();
     },
+  };
+}
+
+interface UseOrgDetailsResult {
+  org: string;
+  data: GithubOrg | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  error: GithubApiError | null;
+}
+
+export function useOrgDetailsQuery(): UseOrgDetailsResult {
+  const orgName = useOrgStore((state) => state.orgName);
+  const trimmedOrg = orgName.trim();
+
+  const query = useQuery<GithubOrg, GithubApiError>({
+    queryKey: ['orgDetails', trimmedOrg],
+    queryFn: () => fetchOrgDetails(trimmedOrg),
+    enabled: Boolean(trimmedOrg),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: (failureCount, error) => {
+      if (error.status === 404 || error.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
+  return {
+    org: trimmedOrg,
+    data: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error ?? null,
   };
 }

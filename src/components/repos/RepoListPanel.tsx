@@ -1,10 +1,60 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useOrgReposQuery } from '../../hooks';
+import { useOrgStore } from '../../store/orgStore';
+
+const SKELETON_ITEMS = 5;
 
 export const RepoListPanel: React.FC = () => {
-  const { org, data, isLoading, isError, error } = useOrgReposQuery();
+  const { org, data, isLoading, isError, error, isFetching } = useOrgReposQuery();
+  const { sortBy, setSortBy } = useOrgStore((state) => ({
+    sortBy: state.sortBy,
+    setSortBy: state.setSortBy,
+  }));
 
   const hasOrg = Boolean(org);
+
+  const sortedRepos = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+
+    const cloned = [...data];
+
+    switch (sortBy) {
+      case 'forks':
+        cloned.sort((a, b) => b.forks_count - a.forks_count);
+        break;
+      case 'updated':
+        cloned.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+        break;
+      case 'stars':
+      default:
+        cloned.sort((a, b) => b.stargazers_count - a.stargazers_count);
+        break;
+    }
+
+    return cloned;
+  }, [data, sortBy]);
+
+  const renderSkeletonList = () => (
+    <ul className="divide-y divide-slate-800">
+      {Array.from({ length: SKELETON_ITEMS }).map((_, index) => (
+        <li key={index} className="py-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-3 w-32 rounded bg-slate-800/80" />
+              <div className="h-3 w-full max-w-xs rounded bg-slate-800/60" />
+              <div className="h-2 w-28 rounded bg-slate-900/80" />
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <div className="h-3 w-10 rounded bg-slate-800/80" />
+              <div className="h-3 w-10 rounded bg-slate-800/80" />
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 
   let body: React.ReactNode = null;
 
@@ -14,8 +64,8 @@ export const RepoListPanel: React.FC = () => {
         Enter a GitHub organization handle above to see its public repositories.
       </p>
     );
-  } else if (isLoading) {
-    body = <p className="text-xs text-slate-500">Loading repositories…</p>;
+  } else if (isLoading && !data) {
+    body = renderSkeletonList();
   } else if (isError) {
     if (error?.status === 404) {
       body = <p className="text-xs text-rose-400">Organization not found.</p>;
@@ -32,16 +82,16 @@ export const RepoListPanel: React.FC = () => {
         </p>
       );
     }
-  } else if (data && data.length === 0) {
+  } else if (sortedRepos.length === 0) {
     body = (
       <p className="text-xs text-slate-500">
         This organization does not have any public repositories, or none are visible with the current criteria.
       </p>
     );
-  } else if (data && data.length > 0) {
+  } else if (sortedRepos.length > 0) {
     body = (
       <ul className="divide-y divide-slate-800">
-        {data.map((repo) => (
+        {sortedRepos.map((repo) => (
           <li key={repo.id} className="py-3">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
@@ -80,9 +130,45 @@ export const RepoListPanel: React.FC = () => {
     <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-sm font-medium text-slate-300">Repositories</h2>
+        <div className="flex items-center gap-1 text-[11px] text-slate-400">
+          <span className="mr-1">Sort by:</span>
+          <button
+            type="button"
+            onClick={() => setSortBy('stars')}
+            className={`rounded-full px-2 py-1 transition-colors ${
+              sortBy === 'stars'
+                ? 'bg-sky-600/80 text-slate-50'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            Stars
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortBy('forks')}
+            className={`rounded-full px-2 py-1 transition-colors ${
+              sortBy === 'forks'
+                ? 'bg-sky-600/80 text-slate-50'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            Forks
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortBy('updated')}
+            className={`rounded-full px-2 py-1 transition-colors ${
+              sortBy === 'updated'
+                ? 'bg-sky-600/80 text-slate-50'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            Recently updated
+          </button>
+        </div>
       </div>
 
-      <div className="mt-3 min-h-[3rem] text-sm">{body}</div>
+      <div className="mt-3 min-h-[3rem] text-sm">{isFetching && sortedRepos.length > 0 ? renderSkeletonList() : body}</div>
     </div>
   );
 };
